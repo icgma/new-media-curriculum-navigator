@@ -66,4 +66,4 @@
 
 ## 许可证
 
-内部使用，请勿外传。
+MIT License - 详见 [LICENSE](LICENSE) 文件
