@@ -9,6 +9,9 @@ __pycache__/
 Thumbs.db
 .DS_Store
 
+# Old app directory (migrated to root)
+app/
+
 # Development / source files (not for deployment)
 parse_curriculum.py
 parse_curriculum_fixed.py
@@ -27,3 +30,4 @@ curriculum_data_real.json
 # IDE
 .vscode/
 .idea/
+
