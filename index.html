@@ -188,7 +188,8 @@ async function checkAuth() {
   const hash = await sha256(input);
   if (hash === PASS_HASH) {
     sessionStorage.setItem('curriculum_auth', '1');
-    showMain();
+    sessionStorage.setItem('curriculum_key', input);
+    showMain(input);
   } else {
     document.getElementById('authErr').textContent = '密码错误，请重试';
     document.getElementById('authInput').value = '';
@@ -196,18 +197,25 @@ async function checkAuth() {
   }
 }
 
-function showMain() {
+function showMain(password) {
   document.getElementById('authOverlay').style.display = 'none';
   document.getElementById('mainContent').style.display = 'block';
+  if (typeof initApp === 'function') {
+    initApp(password);
+  }
 }
 
 document.getElementById('authInput').addEventListener('keydown', e => {
   if (e.key === 'Enter') checkAuth();
 });
 
-if (sessionStorage.getItem('curriculum_auth') === '1') {
-  document.addEventListener('DOMContentLoaded', () => showMain());
-}
+// Session restore
+document.addEventListener('DOMContentLoaded', () => {
+  const savedKey = sessionStorage.getItem('curriculum_key');
+  if (sessionStorage.getItem('curriculum_auth') === '1' && savedKey) {
+    showMain(savedKey);
+  }
+});
 </script>
 
 <script src="app.js"></script>

@@ -1,11 +1,12 @@
 // 课程导航应用主脚本
 class CourseNavigator {
-    constructor() {
+    constructor(authPassword) {
         this.courses = {};
         this.filteredCourses = {};
         this.selectedCourse = null;
         this.currentView = 'card';
         this.editMode = false;
+        this.authPassword = authPassword || '';
         
         this.init();
     }
@@ -59,7 +60,7 @@ class CourseNavigator {
                 const response = await fetch('curriculum_data_real.json.enc');
                 if (!response.ok) throw new Error('无法加载加密数据');
                 const encBuf = await response.arrayBuffer();
-                const jsonStr = await this.decryptData(encBuf, '31a27z2935');
+                const jsonStr = await this.decryptData(encBuf, this.authPassword);
                 data = JSON.parse(jsonStr);
                 console.log('成功加载并解密课程数据');
             } catch (fetchError) {
@@ -716,8 +717,10 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
-// 初始化应用
+// 初始化应用 - 由 auth 成功后调用
 let courseNavigator;
-document.addEventListener('DOMContentLoaded', () => {
-    courseNavigator = new CourseNavigator();
-});
+function initApp(authPassword) {
+    if (!courseNavigator) {
+        courseNavigator = new CourseNavigator(authPassword);
+    }
+}
