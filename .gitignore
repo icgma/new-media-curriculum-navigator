@@ -1,0 +1,29 @@
+# Dependencies
+__pycache__/
+*.pyc
+*.pyo
+
+# OS generated files
+~$*
+*.tmp
+Thumbs.db
+.DS_Store
+
+# Development / source files (not for deployment)
+parse_curriculum.py
+parse_curriculum_fixed.py
+encrypt_data.py
+audit_data.py
+check_htm.py
+check_htm2.py
+check_htm3.py
+dump_htm.py
+htm_dump.txt
+curriculum_data.json
+curriculum_data_real.json
+*.docx
+*.htm
+
+# IDE
+.vscode/
+.idea/

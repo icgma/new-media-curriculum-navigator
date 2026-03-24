@@ -24,441 +24,59 @@ class CourseNavigator {
         }
     }
 
+    // AES-256-CBC decryption via Web Crypto API
+    async decryptData(encryptedBuffer, password) {
+        const PBKDF2_ITERATIONS = 100000;
+        const data = new Uint8Array(encryptedBuffer);
+        const salt = data.slice(0, 16);
+        const iv = data.slice(16, 32);
+        const ciphertext = data.slice(32);
+
+        const enc = new TextEncoder();
+        const keyMaterial = await crypto.subtle.importKey(
+            'raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']
+        );
+        const aesKey = await crypto.subtle.deriveKey(
+            { name: 'PBKDF2', salt, iterations: PBKDF2_ITERATIONS, hash: 'SHA-256' },
+            keyMaterial,
+            { name: 'AES-CBC', length: 256 },
+            false,
+            ['decrypt']
+        );
+        const decrypted = await crypto.subtle.decrypt(
+            { name: 'AES-CBC', iv },
+            aesKey,
+            ciphertext
+        );
+        return new TextDecoder().decode(decrypted);
+    }
+
     async loadCourseData() {
         try {
-            // 尝试加载真实解析的数据
             let data;
             try {
-                const response = await fetch('curriculum_data_real.json');
-                if (response.ok) {
-                    data = await response.json();
-                    console.log('成功加载真实解析的课程数据');
-                } else {
-                    throw new Error('无法加载真实数据');
-                }
+                // Load encrypted data file
+                const response = await fetch('curriculum_data_real.json.enc');
+                if (!response.ok) throw new Error('无法加载加密数据');
+                const encBuf = await response.arrayBuffer();
+                const jsonStr = await this.decryptData(encBuf, '31a27z2935');
+                data = JSON.parse(jsonStr);
+                console.log('成功加载并解密课程数据');
             } catch (fetchError) {
-                console.log('加载真实数据失败，使用备用数据:', fetchError);
-                // 备用数据
-                data = {
-                "courses": {
-                    "ELC001": {
-                        "code": "ELC001",
-                        "name": "大学英语",
-                        "credits": 8.0,
-                        "hours": 128,
-                        "semester": "第1-2学年",
-                        "course_type": "必修",
-                        "course_group": "公共课",
-                        "course_subgroup": "外语课程",
-                        "prerequisites": [],
-                        "description": "英语基础语言技能训练和综合应用能力提升"
-                    },
-                    "COM1015A": {
-                        "code": "COM1015A",
-                        "name": "计算机应用基础与前沿",
-                        "credits": 2.0,
-                        "hours": 32,
-                        "semester": "第1学年",
-                        "course_type": "限选",
-                        "course_group": "公共课",
-                        "course_subgroup": "计算机基础课程",
-                        "prerequisites": [],
-                        "description": "计算机基础知识和前沿技术应用"
-                    },
-                    "XSC1002B": {
-                        "code": "XSC1002B",
-                        "name": "军事训练和军事理论",
-                        "credits": 4.0,
-                        "hours": 32,
-                        "semester": "第1学年",
-                        "course_type": "必修",
-                        "course_group": "公共课",
-                        "course_subgroup": "公共必修课程",
-                        "prerequisites": [],
-                        "description": "军事理论学习和军事技能训练"
-                    },
-                    "SOC6110B": {
-                        "code": "SOC6110B",
-                        "name": "马克思主义基本原理",
-                        "credits": 2.0,
-                        "hours": 32,
-                        "semester": "1-4",
-                        "course_type": "必修",
-                        "course_group": "公共课",
-                        "course_subgroup": "公共必修课程",
-                        "prerequisites": [],
-                        "description": "马克思主义基本理论和方法"
-                    },
-                    "SOC6120C": {
-                        "code": "SOC6120C",
-                        "name": "思想道德与法治",
-                        "credits": 3.0,
-                        "hours": 48,
-                        "semester": "1-4",
-                        "course_type": "必修",
-                        "course_group": "公共课",
-                        "course_subgroup": "公共必修课程",
-                        "prerequisites": [],
-                        "description": "思想道德修养和法律基础知识"
-                    },
-                    "PED001": {
-                        "code": "PED001",
-                        "name": "体育课程",
-                        "credits": 4.0,
-                        "hours": 128,
-                        "semester": "第1-2学年",
-                        "course_type": "限选",
-                        "course_group": "公共课",
-                        "course_subgroup": "通选课程",
-                        "prerequisites": [],
-                        "description": "体育技能训练和身体素质提升"
-                    },
-                    "AED001": {
-                        "code": "AED001",
-                        "name": "艺术教育课程",
-                        "credits": 2.0,
-                        "hours": 32,
-                        "semester": "1-8",
-                        "course_type": "限选",
-                        "course_group": "公共课",
-                        "course_subgroup": "通选课程",
-                        "prerequisites": [],
-                        "description": "美育课程，提升艺术素养"
-                    },
-                    "JOU1153A": {
-                        "code": "JOU1153A",
-                        "name": "马克思主义新闻著作选读",
-                        "credits": 2.0,
-                        "hours": 32,
-                        "semester": "2、3",
-                        "course_type": "必修",
-                        "course_group": "专业课程",
-                        "course_subgroup": "专业基础课",
-                        "prerequisites": [],
-                        "description": "马克思主义新闻思想经典著作研读"
-                    },
-                    "JOU1005A": {
-                        "code": "JOU1005A",
-                        "name": "新闻学概论",
-                        "credits": 2.0,
-                        "hours": 32,
-                        "semester": "1",
-                        "course_type": "必修",
-                        "course_group": "专业课程",
-                        "course_subgroup": "专业基础课",
-                        "prerequisites": [],
-                        "description": "新闻学基本理论和概念"
-                    },
-                    "JOU1108A": {
-                        "code": "JOU1108A",
-                        "name": "传播学概论",
-                        "credits": 2.0,
-                        "hours": 32,
-                        "semester": "2",
-                        "course_type": "必修",
-                        "course_group": "专业课程",
-                        "course_subgroup": "专业基础课",
-                        "prerequisites": [],
-                        "description": "传播学基本理论和研究方法"
-                    },
-                    "JOU1204B": {
-                        "code": "JOU1204B",
-                        "name": "媒体技术基础",
-                        "credits": 2.0,
-                        "hours": 32,
-                        "semester": "1、2",
-                        "course_type": "必修",
-                        "course_group": "专业课程",
-                        "course_subgroup": "专业基础课",
-                        "prerequisites": [],
-                        "description": "媒体技术基础知识和应用"
-                    },
-                    "JOU1206A": {
-                        "code": "JOU1206A",
-                        "name": "摄影基础",
-                        "credits": 2.0,
-                        "hours": 32,
-                        "semester": "第1学期",
-                        "course_type": "必修",
-                        "course_group": "专业课程",
-                        "course_subgroup": "专业基础课",
-                        "prerequisites": [],
-                        "description": "摄影技术和艺术基础"
-                    },
-                    "JOU1209B": {
-                        "code": "JOU1209B",
-                        "name": "摄像技术",
-                        "credits": 3.0,
-                        "hours": 72,
-                        "semester": "第2学期",
-                        "course_type": "必修",
-                        "course_group": "专业课程",
-                        "course_subgroup": "专业基础课",
-                        "prerequisites": ["JOU1206A"],
-                        "description": "摄像技术和视频制作基础"
-                    },
-                    "JOU1109B": {
-                        "code": "JOU1109B",
-                        "name": "新闻采写基础",
-                        "credits": 4.0,
-                        "hours": 80,
-                        "semester": "第2学期",
-                        "course_type": "必修",
-                        "course_group": "专业课程",
-                        "course_subgroup": "专业基础课",
-                        "prerequisites": ["JOU1005A"],
-                        "description": "新闻采访和写作基本技能"
-                    },
-                    "JOU3088A": {
-                        "code": "JOU3088A",
-                        "name": "网络传播",
-                        "credits": 2.0,
-                        "hours": 32,
-                        "semester": "第3学期",
-                        "course_type": "必修",
-                        "course_group": "专业课程",
-                        "course_subgroup": "专业基础课",
-                        "prerequisites": ["JOU1108A"],
-                        "description": "网络环境下的传播规律和特点"
-                    },
-                    "MAT1701B": {
-                        "code": "MAT1701B",
-                        "name": "微积分D",
-                        "credits": 4.0,
-                        "hours": 64,
-                        "semester": "第2学期",
-                        "course_type": "必修",
-                        "course_group": "专业课程",
-                        "course_subgroup": "专业必修课",
-                        "prerequisites": [],
-                        "description": "微积分基础理论和应用"
-                    },
-                    "JOU2154A": {
-                        "code": "JOU2154A",
-                        "name": "传播统计学",
-                        "credits": 2.0,
-                        "hours": 32,
-                        "semester": "第3学期",
-                        "course_type": "必修",
-                        "course_group": "专业课程",
-                        "course_subgroup": "专业必修课",
-                        "prerequisites": ["MAT1701B"],
-                        "description": "传播研究中的统计方法和数据分析"
-                    },
-                    "JOU2155B": {
-                        "code": "JOU2155B",
-                        "name": "基础编程",
-                        "credits": 2.0,
-                        "hours": 56,
-                        "semester": "第4学期",
-                        "course_type": "必修",
-                        "course_group": "专业课程",
-                        "course_subgroup": "专业必修课",
-                        "prerequisites": [],
-                        "description": "编程基础知识和实践技能"
-                    },
-                    "JOU2294A": {
-                        "code": "JOU2294A",
-                        "name": "网络社会学",
-                        "credits": 2.0,
-                        "hours": 32,
-                        "semester": "第4学期",
-                        "course_type": "必修",
-                        "course_group": "专业课程",
-                        "course_subgroup": "专业必修课",
-                        "prerequisites": ["JOU3088A"],
-                        "description": "网络社会的结构、功能和发展规律"
-                    },
-                    "JOU2395A": {
-                        "code": "JOU2395A",
-                        "name": "新媒体文案写作",
-                        "credits": 2.0,
-                        "hours": 56,
-                        "semester": "第4学期",
-                        "course_type": "必修",
-                        "course_group": "专业课程",
-                        "course_subgroup": "专业必修课",
-                        "prerequisites": ["JOU1109B"],
-                        "description": "新媒体平台文案创作技巧和实践"
-                    },
-                    "JOU3294A": {
-                        "code": "JOU3294A",
-                        "name": "新媒体数据分析与应用",
-                        "credits": 2.0,
-                        "hours": 32,
-                        "semester": "第5学期",
-                        "course_type": "必修",
-                        "course_group": "专业课程",
-                        "course_subgroup": "专业必修课",
-                        "prerequisites": ["JOU2155B"],
-                        "description": "新媒体数据收集、分析和应用方法"
-                    },
-                    "JOU3161A": {
-                        "code": "JOU3161A",
-                        "name": "新媒体运营与实践",
-                        "credits": 2.0,
-                        "hours": 44,
-                        "semester": "第5学期",
-                        "course_type": "必修",
-                        "course_group": "专业课程",
-                        "course_subgroup": "专业必修课",
-                        "prerequisites": ["JOU2395A"],
-                        "description": "新媒体平台运营策略和实践操作"
-                    },
-                    "JOU3295A": {
-                        "code": "JOU3295A",
-                        "name": "网络舆情分析",
-                        "credits": 2.0,
-                        "hours": 32,
-                        "semester": "第6学期",
-                        "course_type": "必修",
-                        "course_group": "专业课程",
-                        "course_subgroup": "专业必修课",
-                        "prerequisites": ["JOU1108A", "JOU3088A"],
-                        "description": "网络舆情监测、分析和应对策略"
-                    },
-                    "JOU4090A": {
-                        "code": "JOU4090A",
-                        "name": "数据新闻",
-                        "credits": 2.0,
-                        "hours": 32,
-                        "semester": "第4学期",
-                        "course_type": "选修",
-                        "course_group": "专业课程",
-                        "course_subgroup": "专业选修课",
-                        "prerequisites": ["JOU2154A"],
-                        "description": "数据挖掘和可视化在新闻报道中的应用"
-                    },
-                    "JOU2053A": {
-                        "code": "JOU2053A",
-                        "name": "网络流行文化",
-                        "credits": 2.0,
-                        "hours": 32,
-                        "semester": "第3学期",
-                        "course_type": "选修",
-                        "course_group": "专业课程",
-                        "course_subgroup": "专业选修课",
-                        "prerequisites": ["JOU3088A"],
-                        "description": "网络环境下的流行文化现象和传播规律"
-                    },
-                    "JOU3425A": {
-                        "code": "JOU3425A",
-                        "name": "社交网络分析",
-                        "credits": 2.0,
-                        "hours": 32,
-                        "semester": "第5学期",
-                        "course_type": "选修",
-                        "course_group": "专业课程",
-                        "course_subgroup": "专业选修课",
-                        "prerequisites": ["JOU3294A"],
-                        "description": "社交网络结构分析和传播模式研究"
-                    },
-                    "JOU2167A": {
-                        "code": "JOU2167A",
-                        "name": "网络营销",
-                        "credits": 2.0,
-                        "hours": 32,
-                        "semester": "第3学期",
-                        "course_type": "选修",
-                        "course_group": "专业课程",
-                        "course_subgroup": "专业选修课",
-                        "prerequisites": ["JOU3161A"],
-                        "description": "网络营销策略、方法和实践"
-                    },
-                    "JOU3097A": {
-                        "code": "JOU3097A",
-                        "name": "新媒体广告",
-                        "credits": 2.0,
-                        "hours": 32,
-                        "semester": "第3学期",
-                        "course_type": "选修",
-                        "course_group": "专业课程",
-                        "course_subgroup": "专业选修课",
-                        "prerequisites": ["JOU3161A"],
-                        "description": "新媒体广告创意、制作和投放"
-                    },
-                    "JOU3000C": {
-                        "code": "JOU3000C",
-                        "name": "中期实习",
-                        "credits": 4.0,
-                        "hours": 160,
-                        "semester": "第5学期",
-                        "course_type": "实践",
-                        "course_group": "专业课程",
-                        "course_subgroup": "实践环节",
-                        "prerequisites": ["JOU3088A", "JOU3161A"],
-                        "description": "专业相关企业或机构实习实践"
-                    },
-                    "JOU4000D": {
-                        "code": "JOU4000D",
-                        "name": "毕业实习",
-                        "credits": 5.0,
-                        "hours": 200,
-                        "semester": "第8学期",
-                        "course_type": "实践",
-                        "course_group": "专业课程",
-                        "course_subgroup": "实践环节",
-                        "prerequisites": ["JOU3000C"],
-                        "description": "毕业前的综合实习实践"
-                    },
-                    "JOU4044A": {
-                        "code": "JOU4044A",
-                        "name": "毕业(设计)论文指导",
-                        "credits": 1.0,
-                        "hours": 32,
-                        "semester": "第6学期",
-                        "course_type": "实践",
-                        "course_group": "专业课程",
-                        "course_subgroup": "实践环节",
-                        "prerequisites": [],
-                        "description": "毕业论文或设计的指导和规范"
-                    },
-                    "JOU4144A": {
-                        "code": "JOU4144A",
-                        "name": "毕业论文(设计)",
-                        "credits": 6.0,
-                        "hours": 240,
-                        "semester": "第7学期",
-                        "course_type": "实践",
-                        "course_group": "专业课程",
-                        "course_subgroup": "实践环节",
-                        "prerequisites": ["JOU4044A"],
-                        "description": "毕业设计或学术论文撰写"
-                    },
-                    "RTP5001": {
-                        "code": "RTP5001",
-                        "name": "大学生创新创业训练计划项目",
-                        "credits": 2.0,
-                        "hours": 80,
-                        "semester": "第1学期",
-                        "course_type": "选修",
-                        "course_group": "专业课程",
-                        "course_subgroup": "实践环节",
-                        "prerequisites": [],
-                        "description": "创新创业项目实践和训练"
-                    },
-
-                },
-                "metadata": {
-                    "total_courses": 22,
-                    "source_file": "【9-4-1】网络与新媒体专业培养方案1024.docx",
-                    "semesters": ["1", "2", "3", "4", "5", "6", "7", "8", "1-2", "1-4", "1-8", "2、3", "1、2", "5、7", "7-8", "3-6", "4-6", "5-6", "第1学年", "第1-2学年"],
-                    "course_types": ["必修", "限选", "选修", "实践"],
-                    "course_groups": ["公共课", "专业课程"],
-                    "course_subgroups": ["外语课程", "计算机基础课程", "公共必修课程", "通选课程", "专业基础课", "专业必修课", "专业选修课", "实践环节"],
-                    "total_credits": {
-                        "外语课程": 8,
-                        "计算机基础课程": 2,
-                        "公共必修课程": 22,
-                        "通选课程": 13.5,
-                        "专业基础课": 27,
-                        "专业必修课": 21,
-                        "专业选修课": 19,
-                        "实践环节": 16,
-                        "总计": 128.5
+                console.log('加载加密数据失败，尝试加载明文数据:', fetchError);
+                // Fallback: try plain JSON (for local dev)
+                try {
+                    const resp2 = await fetch('curriculum_data_real.json');
+                    if (resp2.ok) {
+                        data = await resp2.json();
+                        console.log('成功加载明文课程数据');
+                    } else {
+                        throw new Error('明文数据也不可用');
                     }
+                } catch (e2) {
+                    console.error('所有数据源均不可用:', e2);
+                    throw e2;
                 }
-            };
             }
 
             this.courses = data.courses;
