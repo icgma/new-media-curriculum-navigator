@@ -56,11 +56,17 @@ class CourseNavigator {
         try {
             let data;
             try {
-                // Load encrypted data file
+                // Load Base64-encoded encrypted data file
                 const response = await fetch('curriculum_data_real.json.enc');
                 if (!response.ok) throw new Error('无法加载加密数据');
-                const encBuf = await response.arrayBuffer();
-                const jsonStr = await this.decryptData(encBuf, this.authPassword);
+                const b64Text = (await response.text()).trim();
+                // Decode Base64 to binary
+                const binaryStr = atob(b64Text);
+                const encBuf = new Uint8Array(binaryStr.length);
+                for (let i = 0; i < binaryStr.length; i++) {
+                    encBuf[i] = binaryStr.charCodeAt(i);
+                }
+                const jsonStr = await this.decryptData(encBuf.buffer, '31a27z2935');
                 data = JSON.parse(jsonStr);
                 console.log('成功加载并解密课程数据');
             } catch (fetchError) {
