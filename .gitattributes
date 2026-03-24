@@ -1,0 +1,2 @@
+# Treat encrypted files as binary (prevent CRLF conversion)
+*.enc binary
